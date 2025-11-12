@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Signup() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -30,7 +32,9 @@ export default function Signup() {
       });
       const data = await response.json();
       if (response.ok) {
+        localStorage.setItem('userName', formData.name);
         alert('Signup successful!');
+        router.push('/login');
       } else {
         alert(data.message || 'Signup failed');
       }
@@ -110,6 +114,13 @@ export default function Signup() {
               Already have an account?
             </Link>
           </p>
+          
+          <button 
+            onClick={() => window.open('https://medicare-s009.onrender.com', '_blank')}
+            className="w-full mt-4 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
+          >
+            Check Server Status
+          </button>
         </div>
       </div>
     </div>

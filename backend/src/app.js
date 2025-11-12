@@ -22,7 +22,7 @@ app.use(cookieParser());
 
 // Basic GET route
 app.get('/', (req, res) => {
-  res.json({ message: 'HopeRxPharma Backend API is running!', status: 'OK' });
+  res.json({ message: 'Medicare Backend API is running!', status: 'OK' });
 });
 
 app.use("/api/auth/", authRoutes)

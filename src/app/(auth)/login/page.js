@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -18,7 +20,9 @@ export default function Login() {
       });
       const data = await response.json();
       if (response.ok) {
+        localStorage.setItem('token', data.token);
         alert('Login successful!');
+        router.push('/dashboard');
       } else {
         alert(data.message || 'Login failed');
       }
@@ -66,6 +70,13 @@ export default function Login() {
               Create account
             </Link>
           </p>
+          
+          <button 
+            onClick={() => window.open('https://medicare-s009.onrender.com', '_blank')}
+            className="w-full mt-4 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
+          >
+            Check Server Status
+          </button>
         </div>
       </div>
     </div>
