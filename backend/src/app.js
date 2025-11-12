@@ -6,7 +6,7 @@ const authRoutes = require("./routes/authRouts.js")
 
 const app = express();
 
-const allowedOrigins = [''];
+const allowedOrigins = ['https://medi-care-pied-two.vercel.app'];
 
 app.use(cors({
   origin: allowedOrigins,

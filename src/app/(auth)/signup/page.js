@@ -7,7 +7,9 @@ export default function Signup() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: ""
+    phoneNumber: "",
+    password: "",
+    confirmPassword: ""
   });
 
   const handleChange = (e) => {
@@ -17,9 +19,24 @@ export default function Signup() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Signup:", formData);
+    try {
+      const response = await fetch('https://medicare-s009.onrender.com/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert('Signup successful!');
+      } else {
+        alert(data.message || 'Signup failed');
+      }
+    } catch (error) {
+      alert('Network error');
+    }
   };
 
   return (
@@ -54,10 +71,30 @@ export default function Signup() {
             />
             
             <input
+              type="tel"
+              name="phoneNumber"
+              placeholder="Phone Number"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded focus:outline-none focus:border-green-500"
+              required
+            />
+            
+            <input
               type="password"
               name="password"
               placeholder="Password"
               value={formData.password}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded focus:outline-none focus:border-green-500"
+              required
+            />
+            
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
               onChange={handleChange}
               className="w-full px-3 py-2 border rounded focus:outline-none focus:border-green-500"
               required
