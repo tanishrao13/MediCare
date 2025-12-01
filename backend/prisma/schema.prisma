@@ -14,11 +14,83 @@ datasource db {
 }
 
 model Users {
-  id          Int      @id @default(autoincrement())
-  name        String
-  email       String   @unique
-  phoneNumber String   @unique
-  password    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int           @id @default(autoincrement())
+  name            String
+  email           String        @unique
+  phoneNumber     String        @unique
+  password        String
+  role            String        @default("patient") // patient, doctor, admin
+  
+  // Patient-specific fields
+  dateOfBirth     DateTime?
+  address         String?
+  
+  // Doctor-specific fields
+  specialization  String?
+  qualification   String?
+  experience      Int?          // years
+  consultationFee Int?
+  rating          Float?        @default(0)
+  bio             String?
+  location        String?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
+  availabilitySlots     AppointmentSlot[]
+  notifications         Notification[]
+}
+
+model Appointment {
+  id              Int      @id @default(autoincrement())
+  patientId       Int
+  doctorId        Int
+  slotId          Int?
+  
+  appointmentDate DateTime
+  appointmentTime String   // e.g., "10:00 AM"
+  duration        Int      @default(30) // minutes
+  
+  status          String   @default("pending") // pending, confirmed, completed, cancelled
+  reason          String?  // reason for visit
+  notes           String?  // doctor's notes
+  
+  patient         Users    @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor          Users    @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
+  slot            AppointmentSlot? @relation(fields: [slotId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AppointmentSlot {
+  id              Int      @id @default(autoincrement())
+  doctorId        Int
+  date            DateTime
+  startTime       String   // e.g., "09:00 AM"
+  endTime         String   // e.g., "09:30 AM"
+  isAvailable     Boolean  @default(true)
+  
+  doctor          Users    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([doctorId, date, startTime])
+}
+
+model Notification {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  type            String   // email, sms, in-app
+  title           String
+  message         String
+  status          String   @default("pending") // pending, sent, failed
+  sentAt          DateTime?
+  
+  user            Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
 }

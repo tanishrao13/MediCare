@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+    .dark body {
+        background-color: #000000;
+        color: #ffffff;
+    }
 }
