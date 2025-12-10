@@ -96,6 +96,28 @@ export default function AppointmentsPage() {
         }
     };
 
+    const handleDelete = async (id) => {
+        if (!confirm('⚠️ Are you sure you want to PERMANENTLY delete this appointment? This action cannot be undone.')) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${id}?hard=true`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                alert('Appointment deleted permanently');
+                fetchAppointments();
+            } else {
+                alert('Failed to delete appointment');
+            }
+        } catch (err) {
+            console.error('Error deleting appointment:', err);
+            alert('Failed to delete appointment');
+        }
+    };
+
     const handleEdit = (appointment) => {
         setEditingAppointment(appointment);
     };
@@ -199,6 +221,7 @@ export default function AppointmentsPage() {
                                 onStatusUpdate={handleStatusUpdate}
                                 onCancel={handleCancel}
                                 onEdit={handleEdit}
+                                onDelete={handleDelete}
                                 onAddNotes={handleAddNotes}
                             />
                         ))

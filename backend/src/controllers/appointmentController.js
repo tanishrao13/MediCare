@@ -160,9 +160,10 @@ const updateAppointment = async (req, res) => {
     }
 };
 
-// Cancel appointment
+// Cancel or Delete appointment
 const cancelAppointment = async (req, res) => {
     const { id } = req.params;
+    const { hard } = req.query; // Check for hard delete flag
     const userId = req.user.userId;
 
     try {
@@ -172,19 +173,25 @@ const cancelAppointment = async (req, res) => {
             return res.status(404).json({ message: "Appointment not found!" });
         }
 
-        // Patient or doctor can cancel
+        // Patient or doctor can cancel/delete
         if (appointment.patientId !== userId && appointment.doctorId !== userId) {
             return res.status(403).json({ message: "Access denied!" });
         }
 
-        const cancelled = await prisma.appointment.update({
-            where: { id: parseInt(id) },
-            data: { status: "cancelled" }
-        });
-
-        return res.status(200).json({ message: "Appointment cancelled successfully!", appointment: cancelled });
+        if (hard === 'true') {
+            // Hard delete: Permanently remove from database
+            await prisma.appointment.delete({ where: { id: parseInt(id) } });
+            return res.status(200).json({ message: "Appointment deleted permanently!" });
+        } else {
+            // Soft delete: Mark as cancelled
+            const cancelled = await prisma.appointment.update({
+                where: { id: parseInt(id) },
+                data: { status: "cancelled" }
+            });
+            return res.status(200).json({ message: "Appointment cancelled successfully!", appointment: cancelled });
+        }
     } catch (err) {
-        console.error("Cancel appointment error:", err);
+        console.error("Cancel/Delete appointment error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });
     }
 };
