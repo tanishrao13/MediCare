@@ -97,10 +97,10 @@ const getAvailableSlots = async (req, res) => {
     }
 };
 
-// Update slot availability (doctor only)
+// Update slot (doctor only)
 const updateSlot = async (req, res) => {
     const { id } = req.params;
-    const { isAvailable } = req.body;
+    const { isAvailable, date, startTime, endTime } = req.body;
     const userId = req.user.userId;
 
     try {
@@ -114,9 +114,21 @@ const updateSlot = async (req, res) => {
             return res.status(403).json({ message: "Access denied!" });
         }
 
+        // Prepare update data
+        const updateData = {};
+        if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+        if (date) updateData.date = new Date(date);
+        if (startTime) updateData.startTime = startTime;
+        if (endTime) updateData.endTime = endTime;
+
+        // If updating time/date, ensure slot is currently available (not booked)
+        if ((date || startTime || endTime) && !slot.isAvailable) {
+            return res.status(400).json({ message: "Cannot update details of a booked slot!" });
+        }
+
         const updated = await prisma.appointmentSlot.update({
             where: { id: parseInt(id) },
-            data: { isAvailable }
+            data: updateData
         });
 
         return res.status(200).json({ message: "Slot updated successfully!", slot: updated });

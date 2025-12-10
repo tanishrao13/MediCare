@@ -22,6 +22,8 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
         try {
             const token = localStorage.getItem('token');
+            const role = localStorage.getItem('role') || 'patient';
+
             const [appointmentsRes, doctorsRes] = await Promise.all([
                 fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -40,10 +42,17 @@ export default function DashboardPage() {
             const upcoming = appointments.filter(a => new Date(a.appointmentDate) >= new Date() && a.status !== 'cancelled');
             const completed = appointments.filter(a => a.status === 'completed');
 
+            // For doctors, calculate unique patients count
+            let thirdStat = doctorsData.doctors?.length || 0;
+            if (role === 'doctor') {
+                const uniquePatients = new Set(appointments.map(a => a.patient?.id).filter(Boolean));
+                thirdStat = uniquePatients.size;
+            }
+
             setStats({
                 upcomingAppointments: upcoming.length,
                 completedAppointments: completed.length,
-                totalDoctors: doctorsData.doctors?.length || 0
+                totalDoctors: thirdStat
             });
 
             // Show next 3 upcoming appointments

@@ -1,7 +1,7 @@
-import { FaCalendarAlt, FaUserMd, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaEye } from 'react-icons/fa';
+import { FaCalendarAlt, FaUserMd, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaEye, FaEdit, FaNotesMedical } from 'react-icons/fa';
 import Link from 'next/link';
 
-export default function AppointmentCard({ appointment, userRole, onStatusUpdate, onCancel, simpleView = false }) {
+export default function AppointmentCard({ appointment, userRole, onStatusUpdate, onCancel, onEdit, onAddNotes, simpleView = false }) {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'confirmed': return <FaCheckCircle className="text-green-500" />;
@@ -87,14 +87,32 @@ export default function AppointmentCard({ appointment, userRole, onStatusUpdate,
                                         </button>
                                     </>
                                 ) : (
-                                    <button
-                                        onClick={() => onCancel(appointment.id)}
-                                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                                    >
-                                        Cancel
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => onEdit(appointment)}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                        >
+                                            <FaEdit className="inline mr-1" /> Edit
+                                        </button>
+                                        <button
+                                            onClick={() => onCancel(appointment.id)}
+                                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
                                 )}
                             </>
+                        )}
+
+                        {/* Notes button for doctors on confirmed/completed appointments */}
+                        {userRole === 'doctor' && (appointment.status === 'confirmed' || appointment.status === 'completed') && onAddNotes && (
+                            <button
+                                onClick={() => onAddNotes(appointment)}
+                                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-2"
+                            >
+                                <FaNotesMedical /> {appointment.notes ? 'Edit Notes' : 'Add Notes'}
+                            </button>
                         )}
                     </div>
                 )}

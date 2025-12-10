@@ -2,31 +2,50 @@
 import { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaUserMd, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf } from 'react-icons/fa';
 import AppointmentCard from '@/components/AppointmentCard';
+import EditAppointmentModal from '@/components/EditAppointmentModal';
+import AppointmentNotesModal from '@/components/AppointmentNotesModal';
+import Pagination from '@/components/Pagination';
 
 export default function AppointmentsPage() {
     const [userRole, setUserRole] = useState('patient');
     const [appointments, setAppointments] = useState([]);
     const [filter, setFilter] = useState('all');
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
+    const [editingAppointment, setEditingAppointment] = useState(null);
+    const [notesAppointment, setNotesAppointment] = useState(null);
 
     useEffect(() => {
         const role = localStorage.getItem('role') || 'patient';
         setUserRole(role);
-        fetchAppointments();
+    }, []);
+
+    useEffect(() => {
+        setPage(1); // Reset to page 1 when filter changes
     }, [filter]);
 
+    useEffect(() => {
+        fetchAppointments();
+    }, [filter, page]);
+
     const fetchAppointments = async () => {
+        setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const url = filter === 'all'
-                ? `${process.env.NEXT_PUBLIC_API_URL}/api/appointments`
-                : `${process.env.NEXT_PUBLIC_API_URL}/api/appointments?status=${filter}`;
+            const params = new URLSearchParams();
+            if (filter !== 'all') params.append('status', filter);
+            params.append('page', page);
+            params.append('limit', limit);
 
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/api/appointments?${params.toString()}`;
             const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
             setAppointments(data.appointments || []);
+            setPagination(data.pagination || { total: 0, totalPages: 0 });
         } catch (err) {
             console.error('Error fetching appointments:', err);
         } finally {
@@ -77,6 +96,31 @@ export default function AppointmentsPage() {
         }
     };
 
+    const handleEdit = (appointment) => {
+        setEditingAppointment(appointment);
+    };
+
+    const handleCloseEdit = () => {
+        setEditingAppointment(null);
+    };
+
+    const handleUpdateSuccess = () => {
+        fetchAppointments(); // Refresh the list
+    };
+
+    const handleAddNotes = (appointment) => {
+        setNotesAppointment(appointment);
+    };
+
+    const handleCloseNotes = () => {
+        setNotesAppointment(null);
+    };
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const getStatusIcon = (status) => {
         switch (status) {
             case 'confirmed': return <FaCheckCircle className="text-green-500" />;
@@ -96,10 +140,6 @@ export default function AppointmentsPage() {
             default: return 'bg-gray-100 text-gray-800';
         }
     };
-
-    if (loading) {
-        return <div className="p-8">Loading appointments...</div>;
-    }
 
     return (
         <div className="p-8">
@@ -130,24 +170,68 @@ export default function AppointmentsPage() {
                 ))}
             </div>
 
-            {/* Appointments List */}
-            <div className="space-y-4">
-                {appointments.length === 0 ? (
-                    <div className="text-center py-12 bg-white dark:bg-black rounded-lg">
-                        <p className="text-gray-500">No appointments found</p>
-                    </div>
-                ) : (
-                    appointments.map(appointment => (
-                        <AppointmentCard
-                            key={appointment.id}
-                            appointment={appointment}
-                            userRole={userRole}
-                            onStatusUpdate={handleStatusUpdate}
-                            onCancel={handleCancel}
-                        />
-                    ))
-                )}
-            </div>
+            {/* Results Count */}
+            {!loading && (
+                <div className="mb-4 text-gray-600 dark:text-gray-400">
+                    Showing {appointments.length} of {pagination.total} appointments
+                </div>
+            )}
+
+            {/* Loading State */}
+            {loading ? (
+                <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading appointments...</p>
+                </div>
+            ) : (
+                /* Appointments List */
+                <div className="space-y-4">
+                    {appointments.length === 0 ? (
+                        <div className="text-center py-12 bg-white dark:bg-black rounded-lg">
+                            <p className="text-gray-500">No appointments found</p>
+                        </div>
+                    ) : (
+                        appointments.map(appointment => (
+                            <AppointmentCard
+                                key={appointment.id}
+                                appointment={appointment}
+                                userRole={userRole}
+                                onStatusUpdate={handleStatusUpdate}
+                                onCancel={handleCancel}
+                                onEdit={handleEdit}
+                                onAddNotes={handleAddNotes}
+                            />
+                        ))
+                    )}
+                </div>
+            )}
+
+            {/* Edit Appointment Modal */}
+            {editingAppointment && (
+                <EditAppointmentModal
+                    appointment={editingAppointment}
+                    onClose={handleCloseEdit}
+                    onUpdate={handleUpdateSuccess}
+                />
+            )}
+
+            {/* Appointment Notes Modal */}
+            {notesAppointment && (
+                <AppointmentNotesModal
+                    appointment={notesAppointment}
+                    onClose={handleCloseNotes}
+                    onUpdate={handleUpdateSuccess}
+                />
+            )}
+
+            {/* Pagination */}
+            {!loading && (
+                <Pagination
+                    currentPage={page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={handlePageChange}
+                />
+            )}
         </div>
     );
 }

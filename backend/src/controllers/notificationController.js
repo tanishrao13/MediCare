@@ -36,7 +36,7 @@ const sendNotification = async (req, res) => {
 // Get user's notifications
 const getNotifications = async (req, res) => {
     const userId = req.user.userId;
-    const { type, status } = req.query;
+    const { type, status, page = 1, limit = 10 } = req.query;
 
     try {
         let whereClause = { userId };
@@ -44,12 +44,30 @@ const getNotifications = async (req, res) => {
         if (type) whereClause.type = type;
         if (status) whereClause.status = status;
 
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Get total count
+        const total = await prisma.notification.count({ where: whereClause });
+
         const notifications = await prisma.notification.findMany({
             where: whereClause,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limitNum
         });
 
-        return res.status(200).json({ notifications, count: notifications.length });
+        return res.status(200).json({
+            notifications,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         console.error("Get notifications error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });
@@ -59,15 +77,33 @@ const getNotifications = async (req, res) => {
 // Get notification history
 const getNotificationHistory = async (req, res) => {
     const userId = req.user.userId;
+    const { page = 1, limit = 50 } = req.query;
 
     try {
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Get total count
+        const total = await prisma.notification.count({ where: { userId } });
+
         const notifications = await prisma.notification.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
-            take: 50
+            skip,
+            take: limitNum
         });
 
-        return res.status(200).json({ notifications, count: notifications.length });
+        return res.status(200).json({
+            notifications,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         console.error("Get notification history error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });

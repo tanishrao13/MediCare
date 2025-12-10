@@ -1,28 +1,44 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { FaBell, FaEnvelope, FaMobileAlt, FaInfoCircle } from 'react-icons/fa';
+import Pagination from '@/components/Pagination';
 
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState([]);
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchNotifications();
-    }, []);
+    }, [page]);
 
     const fetchNotifications = async () => {
+        setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('limit', limit);
+
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/api/notifications?${params.toString()}`;
+            const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
             setNotifications(data.notifications || []);
+            setPagination(data.pagination || { total: 0, totalPages: 0 });
         } catch (err) {
             console.error('Error fetching notifications:', err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const getIcon = (type) => {
@@ -33,7 +49,7 @@ export default function NotificationsPage() {
         }
     };
 
-    if (loading) return <div className="p-8">Loading notifications...</div>;
+    if (loading && notifications.length === 0) return <div className="p-8">Loading notifications...</div>;
 
     return (
         <div className="p-8 max-w-4xl mx-auto">
@@ -43,9 +59,16 @@ export default function NotificationsPage() {
                     Notifications
                 </h1>
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {notifications.length} New
+                    {pagination.total} Total
                 </span>
             </div>
+
+            {/* Results Count */}
+            {!loading && (
+                <div className="mb-4 text-gray-600 dark:text-gray-400">
+                    Showing {notifications.length} of {pagination.total} notifications
+                </div>
+            )}
 
             <div className="space-y-4">
                 {notifications.length === 0 ? (
@@ -76,6 +99,13 @@ export default function NotificationsPage() {
                     ))
                 )}
             </div>
+
+            {/* Pagination */}
+            <Pagination
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+            />
         </div>
     );
 }

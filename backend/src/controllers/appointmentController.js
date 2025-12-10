@@ -43,7 +43,7 @@ const createAppointment = async (req, res) => {
 // Get appointments (filtered by user role)
 const getAppointments = async (req, res) => {
     const userId = req.user.userId;
-    const { status, date } = req.query;
+    const { status, date, page = 1, limit = 10 } = req.query;
 
     try {
         const user = await prisma.users.findUnique({ where: { id: userId } });
@@ -58,16 +58,34 @@ const getAppointments = async (req, res) => {
         if (status) whereClause.status = status;
         if (date) whereClause.appointmentDate = new Date(date);
 
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Get total count
+        const total = await prisma.appointment.count({ where: whereClause });
+
         const appointments = await prisma.appointment.findMany({
             where: whereClause,
             include: {
                 patient: { select: { id: true, name: true, email: true, phoneNumber: true } },
                 doctor: { select: { id: true, name: true, specialization: true, consultationFee: true } }
             },
-            orderBy: { appointmentDate: 'desc' }
+            orderBy: { appointmentDate: 'desc' },
+            skip,
+            take: limitNum
         });
 
-        return res.status(200).json({ appointments });
+        return res.status(200).json({
+            appointments,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         console.error("Get appointments error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });

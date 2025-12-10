@@ -2,7 +2,7 @@ const prisma = require("../db/prisma.js");
 
 // Get all doctors with filters
 const getAllDoctors = async (req, res) => {
-    const { specialization, location, minRating, search } = req.query;
+    const { specialization, location, minRating, search, page = 1, limit = 10 } = req.query;
 
     try {
         let whereClause = { role: 'doctor' };
@@ -23,6 +23,14 @@ const getAllDoctors = async (req, res) => {
             ];
         }
 
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Get total count
+        const total = await prisma.users.count({ where: whereClause });
+
         const doctors = await prisma.users.findMany({
             where: whereClause,
             select: {
@@ -38,10 +46,20 @@ const getAllDoctors = async (req, res) => {
                 bio: true,
                 location: true
             },
-            orderBy: { rating: 'desc' }
+            orderBy: { rating: 'desc' },
+            skip,
+            take: limitNum
         });
 
-        return res.status(200).json({ doctors, count: doctors.length });
+        return res.status(200).json({
+            doctors,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         console.error("Get doctors error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });
@@ -168,7 +186,7 @@ const updateDoctorProfile = async (req, res) => {
 
 // Search doctors with advanced filters
 const searchDoctors = async (req, res) => {
-    const { query, specialization, location, minFee, maxFee, minRating, sortBy } = req.query;
+    const { query, specialization, location, minFee, maxFee, minRating, sortBy, page = 1, limit = 10 } = req.query;
 
     try {
         let whereClause = { role: 'doctor' };
@@ -215,6 +233,14 @@ const searchDoctors = async (req, res) => {
                 orderBy = { rating: 'desc' };
         }
 
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Get total count
+        const total = await prisma.users.count({ where: whereClause });
+
         const doctors = await prisma.users.findMany({
             where: whereClause,
             select: {
@@ -227,10 +253,20 @@ const searchDoctors = async (req, res) => {
                 rating: true,
                 location: true
             },
-            orderBy
+            orderBy,
+            skip,
+            take: limitNum
         });
 
-        return res.status(200).json({ doctors, count: doctors.length });
+        return res.status(200).json({
+            doctors,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         console.error("Search doctors error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });
