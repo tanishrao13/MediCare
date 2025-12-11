@@ -16,9 +16,21 @@ const createSlots = async (req, res) => {
             return res.status(403).json({ message: "Only doctors can create slots!" });
         }
 
-        const createdSlots = await Promise.all(
-            slots.map(slot =>
-                prisma.appointmentSlot.create({
+        const createdSlots = [];
+        for (const slot of slots) {
+            // Check if slot already exists
+            const existing = await prisma.appointmentSlot.findUnique({
+                where: {
+                    doctorId_date_startTime: {
+                        doctorId: userId,
+                        date: new Date(date),
+                        startTime: slot.startTime
+                    }
+                }
+            });
+
+            if (!existing) {
+                const newSlot = await prisma.appointmentSlot.create({
                     data: {
                         doctorId: userId,
                         date: new Date(date),
@@ -26,11 +38,16 @@ const createSlots = async (req, res) => {
                         endTime: slot.endTime,
                         isAvailable: true
                     }
-                })
-            )
-        );
+                });
+                createdSlots.push(newSlot);
+            }
+        }
 
-        return res.status(201).json({ message: "Slots created successfully!", slots: createdSlots });
+        return res.status(201).json({ 
+            message: `${createdSlots.length} slots created successfully!`, 
+            slots: createdSlots,
+            skipped: slots.length - createdSlots.length
+        });
     } catch (err) {
         console.error("Create slots error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });

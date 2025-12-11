@@ -31,10 +31,53 @@ export default function AvailabilityPage() {
         }
     };
 
-    const createSlot = async (e) => {
+    const createBulkSlots = async (e) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
+            
+            // Generate 30-minute slots between start and end time
+            const slots = [];
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
+            
+            // Check if end time is before start time (invalid)
+            if (endHour < startHour || (endHour === startHour && endMin <= startMin)) {
+                alert('End time must be after start time');
+                return;
+            }
+            
+            let currentHour = startHour;
+            let currentMin = startMin;
+            
+            while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+                const slotStart = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
+                
+                // Add 30 minutes for slot end
+                let nextHour = currentHour;
+                let nextMin = currentMin + 30;
+                if (nextMin >= 60) {
+                    nextMin -= 60;
+                    nextHour += 1;
+                }
+                
+                const slotEnd = `${nextHour.toString().padStart(2, '0')}:${nextMin.toString().padStart(2, '0')}`;
+                
+                // Add slot if end doesn't exceed the specified end time
+                if (nextHour < endHour || (nextHour === endHour && nextMin <= endMin)) {
+                    slots.push({ startTime: slotStart, endTime: slotEnd });
+                }
+                
+                // Move to next slot start time
+                currentMin += 30;
+                if (currentMin >= 60) {
+                    currentMin -= 60;
+                    currentHour += 1;
+                }
+            }
+
+
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots`, {
                 method: 'POST',
                 headers: {
@@ -43,20 +86,23 @@ export default function AvailabilityPage() {
                 },
                 body: JSON.stringify({
                     date: selectedDate,
-                    slots: [{ startTime, endTime }]
+                    slots
                 })
             });
 
             if (res.ok) {
-                alert('Slot created successfully!');
+                alert(`${slots.length} slots created successfully!`);
                 fetchSlots();
                 setSelectedDate('');
                 setStartTime('');
                 setEndTime('');
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to create slots: ${errorData.message}`);
             }
         } catch (err) {
-            console.error('Error creating slot:', err);
-            alert('Failed to create slot');
+            console.error('Error creating slots:', err);
+            alert('Failed to create slots');
         }
     };
 
