@@ -1,12 +1,12 @@
 const prisma = require("../db/prisma.js");
 
-// Create availability slots (doctor only)
+// Create single availability slot (doctor only)
 const createSlots = async (req, res) => {
     const userId = req.user.userId;
-    const { date, slots } = req.body; // slots = [{ startTime, endTime }, ...]
+    const { date, startTime, endTime } = req.body;
 
-    if (!date || !slots || !Array.isArray(slots)) {
-        return res.status(400).json({ message: "Date and slots array are required!" });
+    if (!date || !startTime || !endTime) {
+        return res.status(400).json({ message: "Date, start time, and end time are required!" });
     }
 
     try {
@@ -16,40 +16,37 @@ const createSlots = async (req, res) => {
             return res.status(403).json({ message: "Only doctors can create slots!" });
         }
 
-        const createdSlots = [];
-        for (const slot of slots) {
-            // Check if slot already exists
-            const existing = await prisma.appointmentSlot.findUnique({
-                where: {
-                    doctorId_date_startTime: {
-                        doctorId: userId,
-                        date: new Date(date),
-                        startTime: slot.startTime
-                    }
+        // Check if slot already exists
+        const existing = await prisma.appointmentSlot.findUnique({
+            where: {
+                doctorId_date_startTime: {
+                    doctorId: userId,
+                    date: new Date(date),
+                    startTime: startTime
                 }
-            });
-
-            if (!existing) {
-                const newSlot = await prisma.appointmentSlot.create({
-                    data: {
-                        doctorId: userId,
-                        date: new Date(date),
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
-                        isAvailable: true
-                    }
-                });
-                createdSlots.push(newSlot);
             }
+        });
+
+        if (existing) {
+            return res.status(400).json({ message: "Slot already exists for this time!" });
         }
 
+        const newSlot = await prisma.appointmentSlot.create({
+            data: {
+                doctorId: userId,
+                date: new Date(date),
+                startTime: startTime,
+                endTime: endTime,
+                isAvailable: true
+            }
+        });
+
         return res.status(201).json({ 
-            message: `${createdSlots.length} slots created successfully!`, 
-            slots: createdSlots,
-            skipped: slots.length - createdSlots.length
+            message: "Slot created successfully!", 
+            slot: newSlot
         });
     } catch (err) {
-        console.error("Create slots error:", err);
+        console.error("Create slot error:", err);
         return res.status(500).json({ message: "Server Error!", error: err.message });
     }
 };

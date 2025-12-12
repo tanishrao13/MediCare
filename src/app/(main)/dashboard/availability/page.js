@@ -31,53 +31,11 @@ export default function AvailabilityPage() {
         }
     };
 
-    const createBulkSlots = async (e) => {
+    const createSlot = async (e) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
             
-            // Generate 30-minute slots between start and end time
-            const slots = [];
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const [endHour, endMin] = endTime.split(':').map(Number);
-            
-            // Check if end time is before start time (invalid)
-            if (endHour < startHour || (endHour === startHour && endMin <= startMin)) {
-                alert('End time must be after start time');
-                return;
-            }
-            
-            let currentHour = startHour;
-            let currentMin = startMin;
-            
-            while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
-                const slotStart = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
-                
-                // Add 30 minutes for slot end
-                let nextHour = currentHour;
-                let nextMin = currentMin + 30;
-                if (nextMin >= 60) {
-                    nextMin -= 60;
-                    nextHour += 1;
-                }
-                
-                const slotEnd = `${nextHour.toString().padStart(2, '0')}:${nextMin.toString().padStart(2, '0')}`;
-                
-                // Add slot if end doesn't exceed the specified end time
-                if (nextHour < endHour || (nextHour === endHour && nextMin <= endMin)) {
-                    slots.push({ startTime: slotStart, endTime: slotEnd });
-                }
-                
-                // Move to next slot start time
-                currentMin += 30;
-                if (currentMin >= 60) {
-                    currentMin -= 60;
-                    currentHour += 1;
-                }
-            }
-
-
-
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots`, {
                 method: 'POST',
                 headers: {
@@ -86,23 +44,24 @@ export default function AvailabilityPage() {
                 },
                 body: JSON.stringify({
                     date: selectedDate,
-                    slots
+                    startTime,
+                    endTime
                 })
             });
 
             if (res.ok) {
-                alert(`${slots.length} slots created successfully!`);
+                alert('Slot created successfully!');
                 fetchSlots();
                 setSelectedDate('');
                 setStartTime('');
                 setEndTime('');
             } else {
                 const errorData = await res.json();
-                alert(`Failed to create slots: ${errorData.message}`);
+                alert(`Failed to create slot: ${errorData.message}`);
             }
         } catch (err) {
-            console.error('Error creating slots:', err);
-            alert('Failed to create slots');
+            console.error('Error creating slot:', err);
+            alert('Failed to create slot');
         }
     };
 
@@ -147,11 +106,11 @@ export default function AvailabilityPage() {
 
             {/* Create Slot Form */}
             <div className="bg-white dark:bg-black rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-2">Create Time Slots</h2>
+                <h2 className="text-xl font-semibold mb-2">Create Time Slot</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Create multiple 30-minute slots automatically by selecting a time range
+                    Create a single time slot by selecting date and time range
                 </p>
-                <form onSubmit={createBulkSlots} className="grid md:grid-cols-4 gap-4">
+                <form onSubmit={createSlot} className="grid md:grid-cols-4 gap-4">
                     <input
                         type="date"
                         value={selectedDate}
@@ -180,7 +139,7 @@ export default function AvailabilityPage() {
                         type="submit"
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-medium"
                     >
-                        <FaCalendarPlus /> Create Slots
+                        <FaCalendarPlus /> Create Slot
                     </button>
                 </form>
             </div>
