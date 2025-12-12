@@ -11,10 +11,8 @@ const notificationRoutes = require("./routes/notificationRoutes.js")
 
 const app = express();
 
-const allowedOrigins = ['https://medi-care-pied-two.vercel.app', 'http://localhost:3000'];
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
